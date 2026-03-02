@@ -38,7 +38,7 @@ select,input{padding:8px;margin:5px}
 
 <script>
 
-const URL = "PASTE_WEB_APP_URL_DI_SINI";
+const URL = "https://script.google.com/macros/s/AKfycbyIOXYjFn3NR3OHWOshCK4MulOBE4rcrifz1RlESG9enNQTANtNvTTVR008Xan-gz5t/exec";
 let TOKEN = null;
 
 async function login(){
