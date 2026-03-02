@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sistem Sukan Sekolah</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Arial;background:#0B1120;color:white;text-align:center}
+.card{background:#1e293b;padding:20px;margin:20px;border-radius:10px}
+button{padding:10px 20px;margin:5px}
+select,input{padding:8px;margin:5px}
+</style>
+</head>
+<body>
+
+<h1>SISTEM SUKAN SEKOLAH</h1>
+
+<div class="card">
+<h3>Tambah Markah</h3>
+
+<select id="rumah"></select>
+
+<select id="pertandingan">
+<option value="MERENTAS">Merentas Desa</option>
+<option value="SUKAN">Sukan Tahunan</option>
+<option value="SUKANTARA">Sukantara</option>
+</select>
+
+<input type="number" id="mata" placeholder="Masukkan Mata">
+
+<button onclick="simpan()">Simpan</button>
+</div>
+
+<div class="card">
+<h3>Kedudukan</h3>
+<canvas id="chart"></canvas>
+</div>
+
+<script>
+
+const URL = "https://script.google.com/macros/s/AKfycbyIOXYjFn3NR3OHWOshCK4MulOBE4rcrifz1RlESG9enNQTANtNvTTVR008Xan-gz5t/exec";
+let TOKEN = null;
+
+async function login(){
+const pin = prompt("Masukkan PIN Admin:");
+const res = await fetch(URL+"?action=login",{
+method:"POST",
+body:JSON.stringify({pin}),
+headers:{"Content-Type":"text/plain"}
+});
+const data = await res.json();
+if(data.status==="success"){
+TOKEN=data.token;
+alert("Login berjaya");
+}else{
+alert("PIN salah");
+}
+}
+
+async function simpan(){
+if(!TOKEN){await login();}
+const rumah=document.getElementById("rumah").value;
+const pertandingan=document.getElementById("pertandingan").value;
+const mata=document.getElementById("mata").value;
+
+await fetch(URL+"?token="+TOKEN,{
+method:"POST",
+body:JSON.stringify({rumah,pertandingan,mata}),
+headers:{"Content-Type":"text/plain"}
+});
+load();
+}
+
+async function load(){
+const res=await fetch(URL);
+const data=await res.json();
+
+let total={};
+data.rumah.forEach(r=>total[r[0]]=0);
+
+data.penyertaan.forEach(p=>{
+if(total[p[1]]!==undefined)
+total[p[1]]+=Number(p[3]);
+});
+
+updateChart(total);
+}
+
+let chart;
+
+function updateChart(data){
+const labels=Object.keys(data);
+const values=Object.values(data);
+
+if(chart) chart.destroy();
+
+chart=new Chart(document.getElementById("chart"),{
+type:"bar",
+data:{labels,
+datasets:[{label:"Jumlah Mata",data:values}]}
+});
+}
+
+async function init(){
+const res=await fetch(URL);
+const data=await res.json();
+const select=document.getElementById("rumah");
+data.rumah.forEach(r=>{
+select.innerHTML+=`<option value="${r[0]}">${r[0]}</option>`;
+});
+load();
+}
+
+init();
+</script>
+
+</body>
+</html>
