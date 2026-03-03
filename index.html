@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistem Sukan Sekolah 3.0</title>
+<title>Sistem Sukan Sekolah 4.0</title>
 
 <style>
 body{
@@ -20,45 +20,32 @@ border-radius:15px;
 margin-bottom:20px;
 backdrop-filter:blur(8px);
 }
-h1{text-align:center;font-size:32px;}
-button{
-padding:8px 14px;
-border:none;
-border-radius:8px;
-cursor:pointer;
-font-weight:bold;
-}
-.yellow{background:#FFD700;color:black;}
-input,select{
+h1{text-align:center;}
+input,select,button{
 padding:8px;
 border-radius:6px;
 border:none;
-margin:5px 5px 5px 0;
+margin:5px;
 }
+.yellow{background:#FFD700;color:black;font-weight:bold;}
 .rank-item{
 display:flex;
 justify-content:space-between;
 padding:10px;
 margin-bottom:8px;
 border-radius:8px;
-animation:fadeIn 0.6s ease;
-}
-@keyframes fadeIn{
-from{opacity:0;transform:translateY(10px);}
-to{opacity:1;transform:translateY(0);}
 }
 .gold{background:linear-gradient(90deg,#FFD700,#FFA500);}
 .silver{background:linear-gradient(90deg,#C0C0C0,#A9A9A9);}
 .bronze{background:linear-gradient(90deg,#cd7f32,#a97142);}
 
-/* ================= PODIUM 3D ================= */
+/* PODIUM */
 .podium-wrapper{
 display:flex;
 justify-content:center;
 align-items:flex-end;
 height:220px;
 margin-top:20px;
-perspective:800px;
 }
 .podium-block{
 width:90px;
@@ -67,53 +54,39 @@ text-align:center;
 color:black;
 font-weight:bold;
 border-radius:10px 10px 0 0;
-transform:rotateX(15deg);
-animation:rise 1s ease forwards;
-box-shadow:0 15px 30px rgba(0,0,0,0.4);
+animation:rise 1s ease;
 }
-.first{
-background:linear-gradient(180deg,#FFD700,#FFA500);
-height:150px;
-animation-delay:0.3s;
-}
-.second{
-background:linear-gradient(180deg,#C0C0C0,#A9A9A9);
-height:120px;
-animation-delay:0.6s;
-}
-.third{
-background:linear-gradient(180deg,#cd7f32,#a97142);
-height:90px;
-animation-delay:0.9s;
-}
+.first{background:gold;height:150px;}
+.second{background:silver;height:120px;}
+.third{background:#cd7f32;height:90px;}
 @keyframes rise{
-from{transform:rotateX(15deg) translateY(200px);opacity:0;}
-to{transform:rotateX(15deg) translateY(0);opacity:1;}
-}
-
-@media(max-width:768px){
-h1{font-size:24px;}
+from{transform:translateY(150px);opacity:0;}
+to{transform:translateY(0);opacity:1;}
 }
 </style>
 </head>
 
 <body>
 <div class="container">
-
-<h1>🏆 SISTEM SUKAN SEKOLAH 3.0</h1>
+<h1>🏆 SISTEM SUKAN SEKOLAH 4.0</h1>
 
 <div class="card">
-<h3>🔐 Login Admin</h3>
-<input type="password" id="adminPin" placeholder="Masukkan PIN">
-<button class="yellow" onclick="loginAdmin()">Login</button>
-<button onclick="toggleTV()">TV Mode</button>
-</div>
-
-<div class="card" id="adminPanel" style="display:none;">
 <h3>Tambah Markah</h3>
+
+<select id="rumahFilter" onchange="filterMurid()"></select>
+<select id="kategoriFilterAdmin" onchange="filterMurid()">
+<option value="">Semua Kategori</option>
+<option value="K1">K1</option>
+<option value="K2">K2</option>
+<option value="K3">K3</option>
+</select>
+
+<br>
+
 <select id="muridSelect"></select>
 <select id="pertandinganSelect"></select>
 <select id="kedudukanSelect"></select>
+
 <button class="yellow" onclick="submitMarkah()">Simpan</button>
 </div>
 
@@ -123,66 +96,62 @@ h1{font-size:24px;}
 <div id="ranking"></div>
 </div>
 
-<div class="card">
-<h3>Top 10 Pelajar</h3>
-<select id="kategoriFilter" onchange="renderTop10()">
-<option value="K1">K1</option>
-<option value="K2">K2</option>
-<option value="K3">K3</option>
-</select>
-<div id="top10"></div>
-</div>
-
 </div>
 
 <script>
 const API_URL="https://script.google.com/macros/s/AKfycbyIOXYjFn3NR3OHWOshCK4MulOBE4rcrifz1RlESG9enNQTANtNvTTVR008Xan-gz5t/exec";
 let db={};
-let isAdmin=false;
 
-/* AUTO REFRESH */
-setInterval(fetchData,30000);
 fetchData();
+setInterval(fetchData,30000);
 
-/* LOGIN */
-async function loginAdmin(){
-const pin=document.getElementById("adminPin").value;
-const res=await fetch(API_URL,{
-method:"POST",
-body:JSON.stringify({type:"login",pin})
-});
-const data=await res.json();
-if(data.status==="success"){
-isAdmin=true;
-document.getElementById("adminPanel").style.display="block";
-alert("Login berjaya");
-}else{
-alert("PIN salah");
-}
-}
-
-/* FETCH */
 async function fetchData(){
 const res=await fetch(API_URL);
 db=await res.json();
-populateDropdowns();
+populateFilters();
+populatePertandingan();
 renderRanking();
-renderTop10();
 }
 
-/* DROPDOWN */
-function populateDropdowns(){
-if(!db.murid)return;
+/* FILTER RUMAH */
+function populateFilters(){
+if(!db.rumahsukan)return;
 
-document.getElementById("muridSelect").innerHTML=
-db.murid.map(m=>`<option value="${m["MURID ID"]}">${m.NAMA}</option>`).join("");
+rumahFilter.innerHTML=
+db.rumahsukan.map(r=>
+`<option value="${r["HOUSE ID"]}">${r["RumahSukan"]}</option>`
+).join("");
 
-document.getElementById("pertandinganSelect").innerHTML=
-db.pertandingan.map(p=>`<option value="${p["PERTANDINGAN ID"]}">${p.NAMA}</option>`).join("");
+filterMurid();
+}
 
-const kedudukan=["Emas","Perak","Gangsa","Keempat"];
-document.getElementById("kedudukanSelect").innerHTML=
-kedudukan.map(k=>`<option value="${k}">${k}</option>`).join("");
+/* FILTER MURID */
+function filterMurid(){
+const rumah=rumahFilter.value;
+const kategori=kategoriFilterAdmin.value;
+
+let filtered=db.murid.filter(m=>{
+return (rumah?m["HOUSE ID"]===rumah:true) &&
+(kategori?m.KATEGORI===kategori:true);
+});
+
+muridSelect.innerHTML=
+filtered.map(m=>`<option value="${m["MURID ID"]}">${m.NAMA}</option>`).join("");
+}
+
+/* PERTANDINGAN */
+function populatePertandingan(){
+if(!db.pertandingan)return;
+
+pertandinganSelect.innerHTML=
+db.pertandingan.map(p=>
+`<option value="${p["PERTANDINGAN ID"]}">
+${p.NAMA} (${p.JENIS})
+</option>`).join("");
+
+kedudukanSelect.innerHTML=
+["Emas","Perak","Gangsa","Keempat"].map(k=>
+`<option value="${k}">${k}</option>`).join("");
 }
 
 /* SIMPAN */
@@ -199,7 +168,7 @@ kedudukan:kedudukanSelect.value
 fetchData();
 }
 
-/* RANKING + PODIUM */
+/* RANKING */
 function renderRanking(){
 if(!db.rumahsukan)return;
 
@@ -215,65 +184,20 @@ result[murid["HOUSE ID"]]+=parseInt(p.MATA||0);
 
 let sorted=Object.entries(result).sort((a,b)=>b[1]-a[1]);
 
-/* PODIUM */
-let podiumHTML=`<div class="podium-wrapper">`;
-if(sorted[1])podiumHTML+=`<div class="podium-block second">${sorted[1][0]}<br>${sorted[1][1]} mata</div>`;
-if(sorted[0])podiumHTML+=`<div class="podium-block first">${sorted[0][0]}<br>${sorted[0][1]} mata</div>`;
-if(sorted[2])podiumHTML+=`<div class="podium-block third">${sorted[2][0]}<br>${sorted[2][1]} mata</div>`;
-podiumHTML+=`</div>`;
-document.getElementById("podium3d").innerHTML=podiumHTML;
+let podium=`<div class="podium-wrapper">`;
+if(sorted[1])podium+=`<div class="podium-block second">${sorted[1][0]}<br>${sorted[1][1]}</div>`;
+if(sorted[0])podium+=`<div class="podium-block first">${sorted[0][0]}<br>${sorted[0][1]}</div>`;
+if(sorted[2])podium+=`<div class="podium-block third">${sorted[2][0]}<br>${sorted[2][1]}</div>`;
+podium+=`</div>`;
+podium3d.innerHTML=podium;
 
-/* LIST */
-let html="";
-sorted.forEach((r,i)=>{
-let cls="";
-if(i===0)cls="gold";
-else if(i===1)cls="silver";
-else if(i===2)cls="bronze";
-html+=`<div class="rank-item ${cls}">
-<span>${i+1}. ${r[0]}</span>
-<strong>${r[1]} mata</strong>
-</div>`;
-});
-document.getElementById("ranking").innerHTML=html;
-}
-
-/* TOP 10 */
-function renderTop10(){
-const kategori=document.getElementById("kategoriFilter").value;
-let result={};
-
-db.murid.filter(m=>m.KATEGORI===kategori)
-.forEach(m=>result[m.NAMA]=0);
-
-db.penyertaan.forEach(p=>{
-const murid=db.murid.find(m=>m["MURID ID"]===p["MURID ID"] && m.KATEGORI===kategori);
-if(murid){
-result[murid.NAMA]+=parseInt(p.MATA||0);
-}
-});
-
-let sorted=Object.entries(result).sort((a,b)=>b[1]-a[1]).slice(0,10);
-
-let html="";
-sorted.forEach((s,i)=>{
-html+=`<div class="rank-item">
-<span>${i+1}. ${s[0]}</span>
-<strong>${s[1]} mata</strong>
-</div>`;
-});
-document.getElementById("top10").innerHTML=html;
-}
-
-/* TV MODE */
-function toggleTV(){
-if(!document.fullscreenElement){
-document.documentElement.requestFullscreen();
-}else{
-document.exitFullscreen();
-}
+ranking.innerHTML=
+sorted.map((r,i)=>`
+<div class="rank-item ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">
+${i+1}. ${r[0]} — ${r[1]} mata
+</div>
+`).join("");
 }
 </script>
-
 </body>
 </html>
