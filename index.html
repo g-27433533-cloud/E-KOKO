@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistem Sukan Sekolah 4.0</title>
+<title>Sistem Sukan Sekolah 5.0</title>
 
 <style>
 body{
@@ -68,13 +68,20 @@ to{transform:translateY(0);opacity:1;}
 
 <body>
 <div class="container">
-<h1>🏆 SISTEM SUKAN SEKOLAH 4.0</h1>
+
+<h1>🏆 SISTEM SUKAN SEKOLAH 5.0</h1>
 
 <div class="card">
+<h3>🔐 Login Admin</h3>
+<input type="password" id="adminPin" placeholder="Masukkan PIN">
+<button class="yellow" onclick="loginAdmin()">Login</button>
+</div>
+
+<div class="card" id="adminPanel" style="display:none;">
 <h3>Tambah Markah</h3>
 
 <select id="rumahFilter" onchange="filterMurid()"></select>
-<select id="kategoriFilterAdmin" onchange="filterMurid()">
+<select id="kategoriFilter" onchange="filterMurid()">
 <option value="">Semua Kategori</option>
 <option value="K1">K1</option>
 <option value="K2">K2</option>
@@ -101,10 +108,29 @@ to{transform:translateY(0);opacity:1;}
 <script>
 const API_URL="https://script.google.com/macros/s/AKfycbyIOXYjFn3NR3OHWOshCK4MulOBE4rcrifz1RlESG9enNQTANtNvTTVR008Xan-gz5t/exec";
 let db={};
+let isAdmin=false;
 
 fetchData();
 setInterval(fetchData,30000);
 
+/* LOGIN */
+async function loginAdmin(){
+const pin=document.getElementById("adminPin").value;
+const res=await fetch(API_URL,{
+method:"POST",
+body:JSON.stringify({type:"login",pin})
+});
+const data=await res.json();
+if(data.status==="success"){
+isAdmin=true;
+adminPanel.style.display="block";
+alert("Login berjaya");
+}else{
+alert("PIN salah");
+}
+}
+
+/* FETCH */
 async function fetchData(){
 const res=await fetch(API_URL);
 db=await res.json();
@@ -113,7 +139,7 @@ populatePertandingan();
 renderRanking();
 }
 
-/* FILTER RUMAH */
+/* RUMAH */
 function populateFilters(){
 if(!db.rumahsukan)return;
 
@@ -128,7 +154,7 @@ filterMurid();
 /* FILTER MURID */
 function filterMurid(){
 const rumah=rumahFilter.value;
-const kategori=kategoriFilterAdmin.value;
+const kategori=kategoriFilter.value;
 
 let filtered=db.murid.filter(m=>{
 return (rumah?m["HOUSE ID"]===rumah:true) &&
@@ -146,7 +172,7 @@ if(!db.pertandingan)return;
 pertandinganSelect.innerHTML=
 db.pertandingan.map(p=>
 `<option value="${p["PERTANDINGAN ID"]}">
-${p.NAMA} (${p.JENIS})
+${p["NAMA PERTANDINGAN"]} (${p.JENIS})
 </option>`).join("");
 
 kedudukanSelect.innerHTML=
