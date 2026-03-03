@@ -1,270 +1,246 @@
 <!DOCTYPE html>
-<html>
+<html lang="ms">
 <head>
 <meta charset="UTF-8">
-<title>Sistem Sukan Sekolah 2.0</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem Sukan Sekolah 2.0</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{
-margin:0;
-font-family:Segoe UI;
-background:linear-gradient(135deg,#0f172a,#1e293b);
-color:white;
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:white;
 }
-
-header{
-text-align:center;
-padding:25px;
-font-size:26px;
-font-weight:bold;
-letter-spacing:3px;
-background:#0b1120;
-border-bottom:2px solid gold;
-}
-
-.container{
-padding:25px;
-max-width:1200px;
-margin:auto;
-}
-
+.container{padding:20px;max-width:1200px;margin:auto;}
 .card{
-background:#111827;
-border-radius:15px;
-padding:20px;
-margin-bottom:25px;
-box-shadow:0 8px 25px rgba(0,0,0,0.5);
+    background: rgba(255,255,255,0.05);
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:20px;
+    backdrop-filter: blur(8px);
 }
-
-select,input,button{
-padding:8px;
-margin:5px;
-border-radius:8px;
-border:none;
-}
-
+h1{text-align:center;font-size:32px;}
 button{
-background:gold;
-color:black;
-font-weight:bold;
-cursor:pointer;
+    padding:8px 14px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
 }
-
-button:hover{
-background:#facc15;
+.yellow{background:#FFD700;color:black;}
+input,select{
+    padding:8px;
+    border-radius:6px;
+    border:none;
 }
-
-.rank-card{
-padding:15px;
-margin:10px 0;
-border-radius:10px;
-background:#1f2937;
-transition:0.5s;
+.rank-item{
+    display:flex;
+    justify-content:space-between;
+    padding:10px;
+    margin-bottom:8px;
+    border-radius:8px;
+    animation:fadeIn 0.6s ease;
 }
-
-.rank-card:hover{
-transform:scale(1.05);
-box-shadow:0 0 15px gold;
+@keyframes fadeIn{
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:translateY(0);}
 }
-
-.top{
-animation:glow 1.5s infinite alternate;
-}
-
-@keyframes glow{
-from{box-shadow:0 0 5px gold;}
-to{box-shadow:0 0 20px gold;}
-}
-
-#tvMode{
-position:fixed;
-top:10px;
-right:10px;
-}
-
+.gold{background:linear-gradient(90deg,#FFD700,#FFA500);}
+.silver{background:linear-gradient(90deg,#C0C0C0,#A9A9A9);}
+.bronze{background:linear-gradient(90deg,#cd7f32,#a97142);}
 @media(max-width:768px){
-.rank-grid{
-display:block;
-}
+    h1{font-size:24px;}
 }
 </style>
 </head>
 
 <body>
-
-<header>SISTEM SUKAN SEKOLAH 2.0</header>
-
-<button id="tvMode" onclick="toggleTV()">TV MODE</button>
-
 <div class="container">
 
-<div class="card" id="loginCard">
-<h3>Login Admin</h3>
-<input type="password" id="pin" placeholder="Masukkan PIN">
-<button onclick="login()">Login</button>
+<h1>🏆 SISTEM SUKAN SEKOLAH 2.0</h1>
+
+<div class="card">
+<h3>🔐 Login Admin</h3>
+<input type="password" id="adminPin" placeholder="Masukkan PIN">
+<button class="yellow" onclick="loginAdmin()">Login</button>
+<button onclick="toggleTV()">TV Mode</button>
 </div>
 
 <div class="card" id="adminPanel" style="display:none;">
 <h3>Tambah Markah</h3>
 
-<select id="murid"></select>
-<select id="sukan"></select>
-<select id="pertandingan"></select>
-<select id="kedudukan">
-<option>Emas</option>
-<option>Perak</option>
-<option>Gangsa</option>
-<option>Keempat</option>
-</select>
+<select id="muridSelect"></select>
+<select id="pertandinganSelect"></select>
+<select id="kedudukanSelect"></select>
 
-<input type="number" id="mata" placeholder="Mata">
-
-<button onclick="simpan()">Simpan</button>
+<button class="yellow" onclick="submitMarkah()">Simpan</button>
 </div>
 
 <div class="card">
 <h3>Kedudukan Rumah</h3>
-<canvas id="chart"></canvas>
+<div id="ranking"></div>
 </div>
 
 <div class="card">
 <h3>Top 10 Pelajar</h3>
-<select id="kategoriSelect" onchange="kiraTop10()">
+<select id="kategoriFilter" onchange="renderTop10()">
 <option value="K1">K1</option>
 <option value="K2">K2</option>
 <option value="K3">K3</option>
 </select>
-
-<div id="topList"></div>
+<div id="top10"></div>
 </div>
 
 </div>
 
 <script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyIOXYjFn3NR3OHWOshCK4MulOBE4rcrifz1RlESG9enNQTANtNvTTVR008Xan-gz5t/exec";
+let db = {};
+let isAdmin = false;
 
-const API_URL="https://script.google.com/macros/s/AKfycbyIOXYjFn3NR3OHWOshCK4MulOBE4rcrifz1RlESG9enNQTANtNvTTVR008Xan-gz5t/exec";
-let db;
-
-fetchData();
+/* ================= AUTO REFRESH ================= */
 setInterval(fetchData,30000);
+fetchData();
 
-function fetchData(){
-fetch(API_URL)
-.then(r=>r.json())
-.then(data=>{
-db=data;
-isiDropdown();
-kiraRanking();
-kiraTop10();
-});
+/* ================= LOGIN ================= */
+async function loginAdmin(){
+    const pin = document.getElementById("adminPin").value;
+    const res = await fetch(API_URL,{
+        method:"POST",
+        body:JSON.stringify({type:"login",pin:pin})
+    });
+    const data = await res.json();
+    if(data.status==="success"){
+        isAdmin=true;
+        document.getElementById("adminPanel").style.display="block";
+        alert("Login berjaya");
+    }else{
+        alert("PIN salah");
+    }
 }
 
-function login(){
-fetch(API_URL,{
-method:"POST",
-body:JSON.stringify({login:true,pin:pin.value})
-})
-.then(r=>r.json())
-.then(res=>{
-if(res.status=="success"){
-loginCard.style.display="none";
-adminPanel.style.display="block";
-alert("Login berjaya");
-}else{
-alert("PIN salah");
-}
-});
+/* ================= FETCH DATA ================= */
+async function fetchData(){
+    const res = await fetch(API_URL);
+    db = await res.json();
+    populateDropdowns();
+    renderRanking();
+    renderTop10();
 }
 
-function isiDropdown(){
-murid.innerHTML="";
-db.murid.forEach(m=>{
-murid.innerHTML+=`<option value="${m["MURID ID"]}">${m.NAMA}</option>`;
-});
+/* ================= DROPDOWN ================= */
+function populateDropdowns(){
+    if(!db.murid) return;
 
-sukan.innerHTML="";
-db.sukan.forEach(s=>{
-sukan.innerHTML+=`<option value="${s["SUKAN ID"]}">${s["NAMA SUKAN"]}</option>`;
-});
+    document.getElementById("muridSelect").innerHTML=
+        db.murid.map(m=>`<option value="${m.murid id}">${m.nama}</option>`);
 
-pertandingan.innerHTML="";
-db.pertandingan.forEach(p=>{
-pertandingan.innerHTML+=`<option value="${p["PERTANDINGAN ID"]}">${p["NAMA PERTANDINGAN"]}</option>`;
-});
+    document.getElementById("pertandinganSelect").innerHTML=
+        db.pertandingan.map(p=>`<option value="${p.pertandingan id}">${p.nama pertandingan}</option>`);
+
+    const kedudukan = [
+        {nama:"Emas",mata:10},
+        {nama:"Perak",mata:7},
+        {nama:"Gangsa",mata:5},
+        {nama:"Keempat",mata:3}
+    ];
+
+    document.getElementById("kedudukanSelect").innerHTML=
+        kedudukan.map(k=>`<option value="${k.mata}">${k.nama}</option>`);
 }
 
-function simpan(){
-fetch(API_URL,{
-method:"POST",
-body:JSON.stringify({
-rekod_id:"R"+Date.now(),
-murid_id:murid.value,
-sukan_id:sukan.value,
-pertandingan_id:pertandingan.value,
-kedudukan:kedudukan.value,
-mata:parseInt(mata.value)
-})
-}).then(()=>fetchData());
+/* ================= SIMPAN MARKAH ================= */
+async function submitMarkah(){
+    const murid = muridSelect.value;
+    const pertandingan = pertandinganSelect.value;
+    const mata = parseInt(kedudukanSelect.value);
+
+    await fetch(API_URL,{
+        method:"POST",
+        body:JSON.stringify({
+            type:"add",
+            murid_id:murid,
+            pertandingan_id:pertandingan,
+            mata:mata
+        })
+    });
+
+    fetchData();
 }
 
-function kiraRanking(){
-let rumahPoints={};
+/* ================= RANKING RUMAH ================= */
+function renderRanking(){
+    if(!db.rumahsukan) return;
 
-db.penyertaan.forEach(p=>{
-let m=db.murid.find(x=>x["MURID ID"]==p["MURID ID"]);
-if(!m)return;
-let house=m["HOUSE ID"];
-if(!rumahPoints[house])rumahPoints[house]=0;
-rumahPoints[house]+=parseInt(p.MATA);
-});
+    let result = {};
 
-let labels=Object.keys(rumahPoints);
-let values=Object.values(rumahPoints);
+    db.rumahsukan.forEach(r=>result[r.house id]=0);
 
-new Chart(chart,{
-type:"bar",
-data:{
-labels:labels,
-datasets:[{
-label:"Jumlah Mata",
-data:values,
-backgroundColor:"#facc15"
-}]
-}
-});
-}
+    db.penyertaan.forEach(p=>{
+        const murid = db.murid.find(m=>m["murid id"]===p["murid id"]);
+        if(murid){
+            result[murid["house id"]] += parseInt(p.mata);
+        }
+    });
 
-function kiraTop10(){
-let kategori=kategoriSelect.value;
-let studentPoints={};
+    let sorted = Object.entries(result).sort((a,b)=>b[1]-a[1]);
 
-db.penyertaan.forEach(p=>{
-let m=db.murid.find(x=>x["MURID ID"]==p["MURID ID"]);
-if(!m || m.KATEGORI!=kategori)return;
+    let html="";
+    sorted.forEach((r,i)=>{
+        let cls="";
+        if(i===0) cls="gold";
+        else if(i===1) cls="silver";
+        else if(i===2) cls="bronze";
 
-if(!studentPoints[m.NAMA])studentPoints[m.NAMA]=0;
-studentPoints[m.NAMA]+=parseInt(p.MATA);
-});
+        html+=`<div class="rank-item ${cls}">
+        <span>${i+1}. ${r[0]}</span>
+        <strong>${r[1]} mata</strong>
+        </div>`;
+    });
 
-let sorted=Object.entries(studentPoints)
-.sort((a,b)=>b[1]-a[1])
-.slice(0,10);
-
-topList.innerHTML="";
-sorted.forEach((s,i)=>{
-topList.innerHTML+=`
-<div class="rank-card ${i==0?"top":""}">
-${i+1}. ${s[0]} - ${s[1]} Mata
-</div>`;
-});
+    document.getElementById("ranking").innerHTML=html;
 }
 
+/* ================= TOP 10 ================= */
+function renderTop10(){
+    const kategori = document.getElementById("kategoriFilter").value;
+
+    let result={};
+
+    db.murid.filter(m=>m.kategori===kategori)
+    .forEach(m=>result[m.nama]=0);
+
+    db.penyertaan.forEach(p=>{
+        const murid = db.murid.find(m=>m["murid id"]===p["murid id"] && m.kategori===kategori);
+        if(murid){
+            result[murid.nama]+=parseInt(p.mata);
+        }
+    });
+
+    let sorted = Object.entries(result).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+    let html="";
+    sorted.forEach((s,i)=>{
+        html+=`<div class="rank-item">
+        <span>${i+1}. ${s[0]}</span>
+        <strong>${s[1]} mata</strong>
+        </div>`;
+    });
+
+    document.getElementById("top10").innerHTML=html;
+}
+
+/* ================= TV MODE ================= */
 function toggleTV(){
-document.body.requestFullscreen();
+    if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen();
+    }else{
+        document.exitFullscreen();
+    }
 }
-
 </script>
 
 </body>
