@@ -3,56 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistem Sukan Sekolah 2.0</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Sistem Sukan Sekolah 3.0</title>
 
 <style>
 body{
-    margin:0;
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-    color:white;
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
 }
 .container{padding:20px;max-width:1200px;margin:auto;}
 .card{
-    background: rgba(255,255,255,0.05);
-    padding:20px;
-    border-radius:15px;
-    margin-bottom:20px;
-    backdrop-filter: blur(8px);
+background:rgba(255,255,255,0.05);
+padding:20px;
+border-radius:15px;
+margin-bottom:20px;
+backdrop-filter:blur(8px);
 }
 h1{text-align:center;font-size:32px;}
 button{
-    padding:8px 14px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
+padding:8px 14px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
 }
 .yellow{background:#FFD700;color:black;}
 input,select{
-    padding:8px;
-    border-radius:6px;
-    border:none;
+padding:8px;
+border-radius:6px;
+border:none;
+margin:5px 5px 5px 0;
 }
 .rank-item{
-    display:flex;
-    justify-content:space-between;
-    padding:10px;
-    margin-bottom:8px;
-    border-radius:8px;
-    animation:fadeIn 0.6s ease;
+display:flex;
+justify-content:space-between;
+padding:10px;
+margin-bottom:8px;
+border-radius:8px;
+animation:fadeIn 0.6s ease;
 }
 @keyframes fadeIn{
-    from{opacity:0;transform:translateY(10px);}
-    to{opacity:1;transform:translateY(0);}
+from{opacity:0;transform:translateY(10px);}
+to{opacity:1;transform:translateY(0);}
 }
 .gold{background:linear-gradient(90deg,#FFD700,#FFA500);}
 .silver{background:linear-gradient(90deg,#C0C0C0,#A9A9A9);}
 .bronze{background:linear-gradient(90deg,#cd7f32,#a97142);}
+
+/* ================= PODIUM 3D ================= */
+.podium-wrapper{
+display:flex;
+justify-content:center;
+align-items:flex-end;
+height:220px;
+margin-top:20px;
+perspective:800px;
+}
+.podium-block{
+width:90px;
+margin:0 15px;
+text-align:center;
+color:black;
+font-weight:bold;
+border-radius:10px 10px 0 0;
+transform:rotateX(15deg);
+animation:rise 1s ease forwards;
+box-shadow:0 15px 30px rgba(0,0,0,0.4);
+}
+.first{
+background:linear-gradient(180deg,#FFD700,#FFA500);
+height:150px;
+animation-delay:0.3s;
+}
+.second{
+background:linear-gradient(180deg,#C0C0C0,#A9A9A9);
+height:120px;
+animation-delay:0.6s;
+}
+.third{
+background:linear-gradient(180deg,#cd7f32,#a97142);
+height:90px;
+animation-delay:0.9s;
+}
+@keyframes rise{
+from{transform:rotateX(15deg) translateY(200px);opacity:0;}
+to{transform:rotateX(15deg) translateY(0);opacity:1;}
+}
+
 @media(max-width:768px){
-    h1{font-size:24px;}
+h1{font-size:24px;}
 }
 </style>
 </head>
@@ -60,7 +100,7 @@ input,select{
 <body>
 <div class="container">
 
-<h1>🏆 SISTEM SUKAN SEKOLAH 2.0</h1>
+<h1>🏆 SISTEM SUKAN SEKOLAH 3.0</h1>
 
 <div class="card">
 <h3>🔐 Login Admin</h3>
@@ -71,16 +111,15 @@ input,select{
 
 <div class="card" id="adminPanel" style="display:none;">
 <h3>Tambah Markah</h3>
-
 <select id="muridSelect"></select>
 <select id="pertandinganSelect"></select>
 <select id="kedudukanSelect"></select>
-
 <button class="yellow" onclick="submitMarkah()">Simpan</button>
 </div>
 
 <div class="card">
 <h3>Kedudukan Rumah</h3>
+<div id="podium3d"></div>
 <div id="ranking"></div>
 </div>
 
@@ -97,149 +136,142 @@ input,select{
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyIOXYjFn3NR3OHWOshCK4MulOBE4rcrifz1RlESG9enNQTANtNvTTVR008Xan-gz5t/exec";
-let db = {};
-let isAdmin = false;
+const API_URL="https://script.google.com/macros/s/AKfycbyIOXYjFn3NR3OHWOshCK4MulOBE4rcrifz1RlESG9enNQTANtNvTTVR008Xan-gz5t/exec";
+let db={};
+let isAdmin=false;
 
-/* ================= AUTO REFRESH ================= */
+/* AUTO REFRESH */
 setInterval(fetchData,30000);
 fetchData();
 
-/* ================= LOGIN ================= */
+/* LOGIN */
 async function loginAdmin(){
-    const pin = document.getElementById("adminPin").value;
-    const res = await fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({type:"login",pin:pin})
-    });
-    const data = await res.json();
-    if(data.status==="success"){
-        isAdmin=true;
-        document.getElementById("adminPanel").style.display="block";
-        alert("Login berjaya");
-    }else{
-        alert("PIN salah");
-    }
+const pin=document.getElementById("adminPin").value;
+const res=await fetch(API_URL,{
+method:"POST",
+body:JSON.stringify({type:"login",pin})
+});
+const data=await res.json();
+if(data.status==="success"){
+isAdmin=true;
+document.getElementById("adminPanel").style.display="block";
+alert("Login berjaya");
+}else{
+alert("PIN salah");
+}
 }
 
-/* ================= FETCH DATA ================= */
+/* FETCH */
 async function fetchData(){
-    const res = await fetch(API_URL);
-    db = await res.json();
-    populateDropdowns();
-    renderRanking();
-    renderTop10();
+const res=await fetch(API_URL);
+db=await res.json();
+populateDropdowns();
+renderRanking();
+renderTop10();
 }
 
-/* ================= DROPDOWN ================= */
+/* DROPDOWN */
 function populateDropdowns(){
-    if(!db.murid) return;
+if(!db.murid)return;
 
-    document.getElementById("muridSelect").innerHTML=
-        db.murid.map(m=>`<option value="${m.murid id}">${m.nama}</option>`);
+document.getElementById("muridSelect").innerHTML=
+db.murid.map(m=>`<option value="${m["MURID ID"]}">${m.NAMA}</option>`).join("");
 
-    document.getElementById("pertandinganSelect").innerHTML=
-        db.pertandingan.map(p=>`<option value="${p.pertandingan id}">${p.nama pertandingan}</option>`);
+document.getElementById("pertandinganSelect").innerHTML=
+db.pertandingan.map(p=>`<option value="${p["PERTANDINGAN ID"]}">${p.NAMA}</option>`).join("");
 
-    const kedudukan = [
-        {nama:"Emas",mata:10},
-        {nama:"Perak",mata:7},
-        {nama:"Gangsa",mata:5},
-        {nama:"Keempat",mata:3}
-    ];
-
-    document.getElementById("kedudukanSelect").innerHTML=
-        kedudukan.map(k=>`<option value="${k.mata}">${k.nama}</option>`);
+const kedudukan=["Emas","Perak","Gangsa","Keempat"];
+document.getElementById("kedudukanSelect").innerHTML=
+kedudukan.map(k=>`<option value="${k}">${k}</option>`).join("");
 }
 
-/* ================= SIMPAN MARKAH ================= */
+/* SIMPAN */
 async function submitMarkah(){
-    const murid = muridSelect.value;
-    const pertandingan = pertandinganSelect.value;
-    const mata = parseInt(kedudukanSelect.value);
-
-    await fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({
-            type:"add",
-            murid_id:murid,
-            pertandingan_id:pertandingan,
-            mata:mata
-        })
-    });
-
-    fetchData();
+await fetch(API_URL,{
+method:"POST",
+body:JSON.stringify({
+type:"add",
+murid_id:muridSelect.value,
+pertandingan_id:pertandinganSelect.value,
+kedudukan:kedudukanSelect.value
+})
+});
+fetchData();
 }
 
-/* ================= RANKING RUMAH ================= */
+/* RANKING + PODIUM */
 function renderRanking(){
-    if(!db.rumahsukan) return;
+if(!db.rumahsukan)return;
 
-    let result = {};
+let result={};
+db.rumahsukan.forEach(r=>result[r["HOUSE ID"]]=0);
 
-    db.rumahsukan.forEach(r=>result[r.house id]=0);
+db.penyertaan.forEach(p=>{
+const murid=db.murid.find(m=>m["MURID ID"]===p["MURID ID"]);
+if(murid){
+result[murid["HOUSE ID"]]+=parseInt(p.MATA||0);
+}
+});
 
-    db.penyertaan.forEach(p=>{
-        const murid = db.murid.find(m=>m["murid id"]===p["murid id"]);
-        if(murid){
-            result[murid["house id"]] += parseInt(p.mata);
-        }
-    });
+let sorted=Object.entries(result).sort((a,b)=>b[1]-a[1]);
 
-    let sorted = Object.entries(result).sort((a,b)=>b[1]-a[1]);
+/* PODIUM */
+let podiumHTML=`<div class="podium-wrapper">`;
+if(sorted[1])podiumHTML+=`<div class="podium-block second">${sorted[1][0]}<br>${sorted[1][1]} mata</div>`;
+if(sorted[0])podiumHTML+=`<div class="podium-block first">${sorted[0][0]}<br>${sorted[0][1]} mata</div>`;
+if(sorted[2])podiumHTML+=`<div class="podium-block third">${sorted[2][0]}<br>${sorted[2][1]} mata</div>`;
+podiumHTML+=`</div>`;
+document.getElementById("podium3d").innerHTML=podiumHTML;
 
-    let html="";
-    sorted.forEach((r,i)=>{
-        let cls="";
-        if(i===0) cls="gold";
-        else if(i===1) cls="silver";
-        else if(i===2) cls="bronze";
-
-        html+=`<div class="rank-item ${cls}">
-        <span>${i+1}. ${r[0]}</span>
-        <strong>${r[1]} mata</strong>
-        </div>`;
-    });
-
-    document.getElementById("ranking").innerHTML=html;
+/* LIST */
+let html="";
+sorted.forEach((r,i)=>{
+let cls="";
+if(i===0)cls="gold";
+else if(i===1)cls="silver";
+else if(i===2)cls="bronze";
+html+=`<div class="rank-item ${cls}">
+<span>${i+1}. ${r[0]}</span>
+<strong>${r[1]} mata</strong>
+</div>`;
+});
+document.getElementById("ranking").innerHTML=html;
 }
 
-/* ================= TOP 10 ================= */
+/* TOP 10 */
 function renderTop10(){
-    const kategori = document.getElementById("kategoriFilter").value;
+const kategori=document.getElementById("kategoriFilter").value;
+let result={};
 
-    let result={};
+db.murid.filter(m=>m.KATEGORI===kategori)
+.forEach(m=>result[m.NAMA]=0);
 
-    db.murid.filter(m=>m.kategori===kategori)
-    .forEach(m=>result[m.nama]=0);
+db.penyertaan.forEach(p=>{
+const murid=db.murid.find(m=>m["MURID ID"]===p["MURID ID"] && m.KATEGORI===kategori);
+if(murid){
+result[murid.NAMA]+=parseInt(p.MATA||0);
+}
+});
 
-    db.penyertaan.forEach(p=>{
-        const murid = db.murid.find(m=>m["murid id"]===p["murid id"] && m.kategori===kategori);
-        if(murid){
-            result[murid.nama]+=parseInt(p.mata);
-        }
-    });
+let sorted=Object.entries(result).sort((a,b)=>b[1]-a[1]).slice(0,10);
 
-    let sorted = Object.entries(result).sort((a,b)=>b[1]-a[1]).slice(0,10);
-
-    let html="";
-    sorted.forEach((s,i)=>{
-        html+=`<div class="rank-item">
-        <span>${i+1}. ${s[0]}</span>
-        <strong>${s[1]} mata</strong>
-        </div>`;
-    });
-
-    document.getElementById("top10").innerHTML=html;
+let html="";
+sorted.forEach((s,i)=>{
+html+=`<div class="rank-item">
+<span>${i+1}. ${s[0]}</span>
+<strong>${s[1]} mata</strong>
+</div>`;
+});
+document.getElementById("top10").innerHTML=html;
 }
 
-/* ================= TV MODE ================= */
+/* TV MODE */
 function toggleTV(){
-    if(!document.fullscreenElement){
-        document.documentElement.requestFullscreen();
-    }else{
-        document.exitFullscreen();
-    }
+if(!document.fullscreenElement){
+document.documentElement.requestFullscreen();
+}else{
+document.exitFullscreen();
+}
 }
 </script>
 
